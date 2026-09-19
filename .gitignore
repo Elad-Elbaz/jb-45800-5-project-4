@@ -1,15 +1,33 @@
-# Virtual environment
+# --- Python -------------------------------------------------------------
 .venv/
 venv/
-
-# Python bytecode
 __pycache__/
 *.pyc
 
+# The dataset itself is deliberately NOT in the repository: the project is
+# graded on inference only, and inference needs the checkpoint, not the images.
+# inference/rps_model.pt IS committed and must stay committed.
+inference/rps_data/
 
+# --- Node ---------------------------------------------------------------
+node_modules/
+backend/dist/
+frontend/dist/
+npm-debug.log*
+*.tsbuildinfo
+
+# --- Local runtime state ------------------------------------------------
+# Real secrets and machine-specific overrides. `.env.example` is committed and
+# `docker-compose.yml` carries working defaults, so nothing here is required.
+.env
+.env.local
+*.env.local
+
+# Volumes written by `docker compose up` (Postgres data, LocalStack state).
+.docker-data/
+
+# --- Misc ---------------------------------------------------------------
 archive/
 *.zip
-
-# OS noise
 .DS_Store
 Thumbs.db
