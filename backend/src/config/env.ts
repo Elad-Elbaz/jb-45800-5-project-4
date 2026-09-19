@@ -14,7 +14,12 @@ import dotenv from 'dotenv';
 
 // Loads .env when running outside Docker. Inside Compose the variables are
 // already in the environment and this call is a harmless no-op.
-dotenv.config();
+//
+// `quiet` suppresses dotenv's startup banner, which otherwise announces
+// "injected env (0) from .env" in the container logs -- a line that reads as
+// though a .env file were found and being used, when in fact there is none
+// and every value came from Compose.
+dotenv.config({ quiet: true });
 
 const missing: string[] = [];
 const invalid: string[] = [];
