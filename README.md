@@ -256,6 +256,33 @@ browser and the command line cannot disagree about what the model says either.
 
 ---
 
+## Tests
+
+```bash
+# Unit tests — the worker's failure handling, and the engine against the
+# committed checkpoint. No Docker, no broker, no database.
+cd inference
+pip install -r requirements.txt -r requirements-dev.txt
+pytest
+
+# End-to-end — drives the running stack through nginx, exactly as a browser
+# would. Start it first with `docker compose up -d --build`.
+python tests/e2e.py
+```
+
+The unit tests concentrate on the branch that decides between acknowledging a
+message, requeueing it and dead-lettering it. That is the part of this project
+most likely to be wrong in a way nothing notices: every path "works" in the
+sense that the callback returns, and only the wrong ones lose a recoverable
+job or retry an impossible one forever.
+
+The end-to-end suite covers the failure paths as much as the happy one —
+oversized uploads, a renamed executable, a malformed id, and a file with a
+valid PNG header but an undecodable body, which is the case that gets past the
+backend and has to be rejected by the worker.
+
+---
+
 ## Running without Docker
 
 Useful for iterating on one service. Start the infrastructure in containers
