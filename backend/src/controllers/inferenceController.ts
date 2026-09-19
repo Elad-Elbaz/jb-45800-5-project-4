@@ -143,6 +143,12 @@ export class InferenceController {
     }
 
     const stored = await this.s3.getImage(location.imageKey);
+    if (!stored) {
+      // The row outlived its object. Postgres persists across a
+      // `docker compose down`; LocalStack's community edition cannot persist a
+      // bucket, so historical rows can genuinely point at nothing.
+      throw ApiError.notFound('The stored image for this request is no longer available.');
+    }
 
     res.setHeader('Content-Type', location.contentType);
     if (stored.contentLength !== undefined) {

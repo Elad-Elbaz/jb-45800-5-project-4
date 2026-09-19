@@ -88,7 +88,15 @@ class InferenceEngine:
             )
         except (UnidentifiedImageError, OSError, ValueError) as error:
             # OSError also covers PIL's "image file is truncated".
-            raise InvalidImage(f"could not decode the uploaded image: {error}") from error
+            #
+            # The message is written for a person looking at a browser, not a
+            # log: PIL's own text embeds the repr of the stream object, memory
+            # address and all, and that has no business being rendered in a
+            # web page. `raise ... from` keeps the original available to the
+            # worker, which logs it.
+            raise InvalidImage(
+                "the image could not be decoded; it may be truncated or corrupt"
+            ) from error
 
         duration_ms = int((time.perf_counter() - started) * 1000)
 

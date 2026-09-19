@@ -241,8 +241,8 @@ class InferenceWorker:
         # this clause has to precede the transient one or a missing object
         # would be retried as though the store were merely unreachable.
         except (InvalidImage, ObjectNotFound, RequestNotFound) as error:
-            log.error("%s failed permanently: %s", request_id, error)
-            self._fail(channel, method, request_id, str(error))
+            log.error("%s failed permanently: %s%s", request_id, error, describe_cause(error))
+            self._fail(channel, method, request_id, user_message(error))
 
         except (StorageError, DatabaseError) as error:
             # A dependency blinked. Give the job exactly one more attempt, and
@@ -258,14 +258,18 @@ class InferenceWorker:
                 channel.basic_nack(method.delivery_tag, requeue=True)
                 return
             log.error("%s failed again after a retry: %s", request_id, error)
-            self._fail(channel, method, request_id, str(error))
+            self._fail(channel, method, request_id, user_message(error))
 
         except Exception as error:  # noqa: BLE001 - the catch-all is the point
             # An unexpected exception must not kill the consumer: one bad
             # message would otherwise take down a worker that is perfectly
             # capable of handling every other job in the queue.
+            #
+            # The traceback goes to the log; the browser gets a sentence. An
+            # arbitrary exception's str() is written for a developer and can
+            # carry connection strings and internal paths.
             log.exception("%s raised an unexpected error", request_id)
-            self._fail(channel, method, request_id, f"unexpected error: {error}")
+            self._fail(channel, method, request_id, user_message(error))
 
     def _fail(
         self,
@@ -284,6 +288,37 @@ class InferenceWorker:
             log.error("could not record the failure of %s: %s", request_id, error)
 
         channel.basic_nack(method.delivery_tag, requeue=False)
+
+
+def user_message(error: Exception) -> str:
+    """The sentence a person will read in the browser.
+
+    `error_message` is rendered in the UI, so it is a user-facing string and
+    has to be written like one. An exception's own text is written for whoever
+    is reading the log -- it carries stream reprs, bucket names, driver output
+    and occasionally a connection string, none of which belong in a web page.
+    The technical version is logged next to every call of this function.
+
+    ObjectNotFound is checked before StorageError because it is a subclass of
+    it, exactly as in the except clauses above.
+    """
+    if isinstance(error, InvalidImage):
+        return "The image could not be decoded. It may be truncated, or saved in a format the model cannot read."
+    if isinstance(error, ObjectNotFound):
+        return "The uploaded image is no longer in storage."
+    if isinstance(error, RequestNotFound):
+        return "The record for this request no longer exists."
+    if isinstance(error, StorageError):
+        return "The image store could not be reached. Please try again."
+    if isinstance(error, DatabaseError):
+        return "The database could not be reached. Please try again."
+    return "The prediction failed unexpectedly. The worker log has the details."
+
+
+def describe_cause(error: Exception) -> str:
+    """The original exception a clean message was raised `from`, for the log."""
+    cause = error.__cause__
+    return f" (cause: {cause})" if cause is not None else ""
 
 
 def parse_job(body: bytes) -> tuple[str, str]:

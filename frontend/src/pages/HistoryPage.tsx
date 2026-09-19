@@ -99,6 +99,15 @@ export function HistoryPage() {
                   src={inferenceImageUrl(item.requestId)}
                   alt={item.originalName}
                   loading="lazy"
+                  /**
+                   * A row can outlive its image: Postgres persists across a
+                   * `docker compose down` and LocalStack's community edition
+                   * cannot. Hiding the broken element beats showing the
+                   * browser's default torn-image icon.
+                   */
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
                 />
               </div>
 

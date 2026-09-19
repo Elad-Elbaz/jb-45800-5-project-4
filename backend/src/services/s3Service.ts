@@ -17,6 +17,8 @@ import {
   CreateBucketCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  NoSuchKey,
+  NotFound,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -104,15 +106,29 @@ export class S3Service {
 
   /**
    * Streams an object back out, for the route that serves a thumbnail to the
-   * history page.
+   * history page. Returns null when the object is simply not there.
+   *
+   * A missing object is a real, reachable state rather than a bug: Postgres
+   * keeps its rows in a named volume that survives `docker compose down`,
+   * while LocalStack's community edition cannot persist a bucket at all. A
+   * restart therefore leaves historical rows pointing at images that no longer
+   * exist, and that deserves a 404 rather than a 500.
    *
    * The stream is returned rather than a Buffer so a large image is piped
    * straight to the client instead of being held in the API's heap first.
    */
-  async getImage(key: string): Promise<StoredObject> {
-    const response = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+  async getImage(key: string): Promise<StoredObject | null> {
+    let response;
+    try {
+      response = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    } catch (error) {
+      // NotFound covers the bucket itself having gone away, which is the same
+      // situation from the caller's point of view.
+      if (error instanceof NoSuchKey || error instanceof NotFound) {
+        return null;
+      }
+      throw error;
+    }
 
     if (!response.Body) {
       throw new Error(`S3 returned an empty body for "${key}"`);
