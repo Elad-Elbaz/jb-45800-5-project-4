@@ -1,0 +1,11 @@
+# Normalise line endings in the repository to LF. Without this, files authored
+# on Windows reach the Linux images with CRLF, which silently breaks anything
+# the container executes or parses line-by-line.
+* text=auto eol=lf
+
+# Binary payloads: never touched, never diffed as text.
+*.pt   binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary

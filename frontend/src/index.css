@@ -1,0 +1,590 @@
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   Both palettes are defined here and the dark one is selected by the visitor's
+   own system setting. Every colour used anywhere in the app resolves through
+   one of these variables, so there is no rule that looks right in one theme
+   and unreadable in the other.
+   --------------------------------------------------------------------------- */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-alt: #f0f2f5;
+  --border: #dfe3e8;
+  --text: #16191d;
+  --text-muted: #626b76;
+  --accent: #2f6fed;
+  --accent-contrast: #ffffff;
+  --success: #1f8a4c;
+  --warning: #9a6200;
+  --warning-bg: #fdf3e0;
+  --danger: #c0362c;
+  --danger-bg: #fbeceb;
+  --track: #e4e8ee;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1216;
+    --surface: #171b21;
+    --surface-alt: #1e232b;
+    --border: #2b323c;
+    --text: #e8ecf1;
+    --text-muted: #98a2b0;
+    --accent: #5b8dfc;
+    --accent-contrast: #0f1216;
+    --success: #4ac07b;
+    --warning: #e0a44a;
+    --warning-bg: #2a2114;
+    --danger: #f0776c;
+    --danger-bg: #2c1817;
+    --track: #262d37;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Never remove a focus ring without replacing it: keyboard users lose all
+   sense of position on the page. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Layout
+   -------------------------------------------------------------------------- */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app__logo {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.app__title {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.app__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.app__nav {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-link {
+  padding: 7px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--text-muted);
+}
+
+.nav-link:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.nav-link--active,
+.nav-link--active:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.app__main {
+  flex: 1;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.app__footer {
+  padding: 18px 24px 32px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.app__footer p {
+  margin: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.panel--status {
+  padding: 18px 22px;
+}
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   Image picker
+   -------------------------------------------------------------------------- */
+.picker {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  padding: 22px;
+  text-align: center;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.picker--dragging {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-alt));
+}
+
+.picker--disabled {
+  opacity: 0.65;
+}
+
+/* Visually hidden, but still in the accessibility tree and still focusable --
+   unlike display:none, which would make the file input unreachable by
+   keyboard and leave the <label> pointing at nothing. */
+.picker__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.picker__empty {
+  padding: 18px 0 22px;
+}
+
+.picker__headline {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.picker__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.picker__preview img {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.picker__filename {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.picker__button {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.picker__button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.picker--disabled .picker__button {
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons and notices
+   -------------------------------------------------------------------------- */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.button {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 550;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.notice {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.notice--error {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.notice--warn {
+  border-color: var(--warning);
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* --------------------------------------------------------------------------
+   Status
+   -------------------------------------------------------------------------- */
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.badge--pending {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.badge--processing {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.badge--completed {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.badge--failed {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--track);
+  border-top-color: var(--accent);
+  animation: spin 800ms linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respect a stated preference for less motion rather than spinning anyway. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+
+  .bars__fill {
+    transition: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Result
+   -------------------------------------------------------------------------- */
+.result__header {
+  margin-bottom: 16px;
+}
+
+.result__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.result__class {
+  margin: 2px 0 4px;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+}
+
+.result__class--unsure {
+  font-size: 24px;
+  color: var(--warning);
+}
+
+.result__confidence {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.result__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bars__row {
+  display: grid;
+  grid-template-columns: 78px 1fr 64px;
+  align-items: center;
+  gap: 12px;
+}
+
+.bars__label {
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.bars__track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.bars__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: width 320ms ease;
+}
+
+.bars__fill--winner {
+  background: var(--accent);
+}
+
+.bars__value {
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   History
+   -------------------------------------------------------------------------- */
+.history__header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.history__header .page-subtitle {
+  margin-bottom: 0;
+}
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.history__card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.history__thumb {
+  aspect-ratio: 3 / 2;
+  background: var(--surface-alt);
+}
+
+.history__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.history__body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.history__verdict {
+  margin: 0;
+  font-size: 16px;
+}
+
+.history__unsure {
+  color: var(--warning);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.history__file {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .bars__row {
+    grid-template-columns: 64px 1fr 56px;
+    gap: 8px;
+  }
+
+  .app__main {
+    padding: 20px 14px 40px;
+  }
+}

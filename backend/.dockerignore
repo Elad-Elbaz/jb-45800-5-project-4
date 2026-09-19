@@ -1,0 +1,12 @@
+# Dependencies are installed inside the image from package-lock.json. Copying
+# the host's node_modules would ship Windows-built native binaries into a Linux
+# container, and would invalidate the layer cache on every install.
+node_modules
+dist
+
+# Never bake real configuration into an image.
+.env
+.env.local
+
+npm-debug.log*
+*.tsbuildinfo

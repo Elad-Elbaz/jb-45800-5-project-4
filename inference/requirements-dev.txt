@@ -1,0 +1,10 @@
+# Test-only dependencies. Deliberately separate from requirements.txt so the
+# worker image installs nothing it does not run -- the Dockerfile copies
+# source files by name and never includes the tests.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest
+
+-r requirements.txt
+
+pytest>=8.0,<9

@@ -1,0 +1,8 @@
+# Installed inside the image from package-lock.json; copying the host's copy
+# would ship platform-specific binaries and bust the layer cache every build.
+node_modules
+dist
+
+.env
+.env.local
+npm-debug.log*
