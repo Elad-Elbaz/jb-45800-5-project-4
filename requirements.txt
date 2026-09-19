@@ -1,0 +1,15 @@
+# Requires Python 3.10 or newer.
+#   pip install -r requirements.txt
+#
+# Plain PyPI names on purpose: on macOS these resolve to the CPU/MPS builds,
+# which is exactly what this project needs. No CUDA index URL, which would
+# fail on a Mac.
+torch==2.13.0
+torchvision==0.28.0
+pillow>=10.0
+
+# Windows only, and skipped entirely on macOS/Linux thanks to the marker.
+# Supplies the MSVC runtime DLLs that PyTorch needs but a bare Python install
+# on Windows does not provide. train.py/predict.py put these on the DLL search
+# path automatically, so no manual step is required.
+msvc-runtime; sys_platform == "win32"
