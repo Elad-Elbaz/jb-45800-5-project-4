@@ -13,3 +13,15 @@ pillow>=10.0
 # on Windows does not provide. train.py/predict.py put these on the DLL search
 # path automatically, so no manual step is required.
 msvc-runtime; sys_platform == "win32"
+
+# --- Queue worker ---------------------------------------------------------
+# Needed by worker.py only. train.py and predict.py still run with nothing but
+# the three packages above, so the command-line workflow the model was built
+# with keeps working on a machine that has never heard of RabbitMQ.
+#
+# Pinned to a major version rather than an exact one: these are stable,
+# widely-deployed clients, and the image is what actually fixes the build
+# (Docker resolves them once and the layer is cached thereafter).
+pika>=1.3,<2            # RabbitMQ client
+psycopg[binary]>=3.1,<4 # Postgres driver; [binary] avoids needing libpq at build time
+boto3>=1.34,<2          # S3 / LocalStack
