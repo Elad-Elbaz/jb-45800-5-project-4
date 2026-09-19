@@ -1,0 +1,167 @@
+# Rock / Paper / Scissors classifier -- the whole system.
+#
+#   docker compose up --build
+#   open http://localhost:8080
+#
+#     browser ──▶ frontend (nginx)  ──/api──▶  backend (express)
+#                                                 │
+#                        ┌────────────────────────┼────────────────────┐
+#                        ▼                        ▼                    ▼
+#                   localstack (s3)          postgres              rabbitmq
+#                        ▲                        ▲                    │
+#                        └──────── worker (python/torch) ◀─────────────┘
+#
+# The backend and the worker never speak to each other. The backend publishes
+# a message and answers the browser; the worker consumes it, reads the image
+# from S3 and writes the result to Postgres. Everything the browser sees after
+# the upload, it reads out of the database.
+#
+# There is no `version:` key. It has been ignored by Compose v2 since 2023 and
+# now only produces a deprecation warning.
+
+name: rps-classifier
+
+# ---------------------------------------------------------------------------
+# Settings repeated by both application containers. YAML anchors keep them in
+# one place: the two services must agree on the broker, the bucket and the
+# database, and three copies of a password is three chances to mistype it.
+# ---------------------------------------------------------------------------
+x-postgres-credentials: &postgres-credentials
+  POSTGRES_USER: rps
+  POSTGRES_PASSWORD: rps_dev_password
+  POSTGRES_DB: rps_db
+
+x-shared-backends: &shared-backends
+  DATABASE_URL: postgresql://rps:rps_dev_password@postgres:5432/rps_db
+  RABBITMQ_URL: amqp://rps:rps_dev_password@rabbitmq:5672
+  RABBITMQ_QUEUE: inference.jobs
+  RABBITMQ_DLX: inference.dlx
+  RABBITMQ_DLQ: inference.jobs.failed
+  S3_ENDPOINT: http://localstack:4566
+  S3_BUCKET: rps-inference
+  AWS_REGION: us-east-1
+  # LocalStack accepts any credentials; these are the conventional dummies and
+  # are not a secret in any environment this file is meant for.
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+
+x-infra-ready: &infra-ready
+  postgres:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  localstack:
+    condition: service_healthy
+
+services:
+  # -------------------------------------------------------------------------
+  # Infrastructure
+  # -------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    environment: *postgres-credentials
+    volumes:
+      # Named volume, so predictions survive `docker compose down`. They are
+      # lost on `down -v`, which is the flag that says so.
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # -d as well as -U: without the database name pg_isready reports ready
+      # during the brief window when the server is up but rps_db is not yet
+      # created, and the backend would connect into that gap and fail.
+      test: ["CMD-SHELL", "pg_isready -U rps -d rps_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: rps
+      RABBITMQ_DEFAULT_PASS: rps_dev_password
+    ports:
+      # The management UI, at http://localhost:15672 (rps / rps_dev_password).
+      # Worth publishing: it is where you can watch a message enter
+      # inference.jobs and leave, and inspect anything that landed in
+      # inference.jobs.failed.
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      # RabbitMQ boots the Erlang VM before it listens; a short start period
+      # here produces a container marked unhealthy while it is merely starting.
+      start_period: 30s
+    restart: unless-stopped
+
+  localstack:
+    image: localstack/localstack:3
+    environment:
+      # S3 only. LocalStack will happily start dozens of emulated services,
+      # all of which cost memory this project has no use for.
+      SERVICES: s3
+      DEBUG: "0"
+      AWS_DEFAULT_REGION: us-east-1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Application
+  # -------------------------------------------------------------------------
+  backend:
+    build: ./backend
+    environment:
+      <<: *shared-backends
+      NODE_ENV: production
+      PORT: "5000"
+      MAX_UPLOAD_BYTES: "10485760" # 10 MB
+    ports:
+      # Published for curl and for reading /health directly. The browser does
+      # not use this port -- it goes through nginx on 8080.
+      - "5000:5000"
+    depends_on: *infra-ready
+    restart: unless-stopped
+
+  worker:
+    build: ./inference
+    environment:
+      <<: *shared-backends
+      MODEL_PATH: /app/rps_model.pt
+      # One job at a time per replica; see the note in worker.py.
+      WORKER_PREFETCH: "1"
+      # Without a cap each replica sizes its thread pool to every core on the
+      # host, so `--scale worker=3` would have three processes each trying to
+      # use all of them.
+      TORCH_NUM_THREADS: "2"
+    depends_on:
+      <<: *infra-ready
+      backend:
+        # Not because the worker calls the backend -- it has no way to, and
+        # that is the point -- but because the backend applies the database
+        # schema this worker writes through.
+        condition: service_healthy
+    restart: unless-stopped
+    # Stateless and horizontally scalable: `docker compose up --scale worker=3`
+    # starts three replicas that compete for the same queue, and no other
+    # service needs to be told the number changed.
+
+  frontend:
+    build: ./frontend
+    ports:
+      # 8080 rather than 80: binding a privileged port needs elevation on
+      # Linux and collides with whatever already owns port 80 on a desktop.
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

@@ -1,0 +1,12 @@
+# The Dockerfile copies files by name, so this is belt-and-braces -- but it
+# also keeps the build context small, and the context is sent to the daemon in
+# full before the first instruction runs.
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Training artefacts and data. The dataset is not in the repository at all;
+# rps_model.pt IS copied in, explicitly, by the Dockerfile.
+rps_data/
+*.history.json
