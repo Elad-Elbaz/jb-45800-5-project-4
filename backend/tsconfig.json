@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    // Node 22 in the image supports every ES2023 feature natively, so there is
+    // no reason to downlevel and lose readable output in the stack traces.
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    // "nodenext" rather than a bare "commonjs": TypeScript 7 removed the
+    // legacy node10 resolver, and this is the mode that resolves packages the
+    // way Node actually does, honouring the "exports" maps that amqplib and
+    // the AWS SDK ship. The emitted format still follows package.json, which
+    // declares "type": "commonjs".
+    "module": "nodenext",
+
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "strict": true,
+    // Beyond `strict`: these turn three classes of silent mistake into build
+    // failures -- an import left behind after a refactor, a `switch` that
+    // falls through by accident, and a method that no longer overrides what
+    // its author thought it did.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    // Source maps only: the declaration files would describe an application,
+    // which nothing imports.
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
